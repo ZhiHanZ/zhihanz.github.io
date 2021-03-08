@@ -1,8 +1,7 @@
 [build]
 # This assumes that the Zola site is in a docs folder. If it isn't, you don't need
 # to have a `base` variable but you do need the `publish` and `command` variables.
-base    = "docs"
-publish = "docs/public"
+publish = "/public"
 command = "zola build"
 
 [build.environment]
@@ -15,4 +14,4 @@ ZOLA_VERSION = "0.13.0"
 # `$DEPLOY_PRIME_URL`.
 
 [context.deploy-preview]
-command = "zola build --base-url zhihanz.github.io"
+command = "zola build --base-url $DEPLOY_PRIME_URL"
