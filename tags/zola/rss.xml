@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+      <title>zhihanz + cloud native - zola</title>
+        <link>https://zhihanz.github.io</link>
+        <description></description>
+        <generator>Zola</generator>
+        <language>en</language>
+        <atom:link href="https://zhihanz.github.io/tags/zola/rss.xml" rel="self" type="application/rss+xml"/>
+        <lastBuildDate>Sat, 29 Aug 2020 00:00:00 +0000</lastBuildDate>
+        <item>
+            <title>Extended Shortcodes</title>
+            <pubDate>Sat, 29 Aug 2020 00:00:00 +0000</pubDate>
+            <link>https://zhihanz.github.io/docs/extended-shortcodes/</link>
+            <guid>https://zhihanz.github.io/docs/extended-shortcodes/</guid>
+            <description>&lt;p&gt;DeepThought theme provides multiple shortcodes on top of built-in ones in Zola.&lt;&#x2F;p&gt;
+</description>
+        </item>
+    </channel>
+</rss>
