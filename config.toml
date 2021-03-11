@@ -55,7 +55,7 @@ github = "zhihanz"
 
 # To add google analytics
 [extra.analytics]
-google = "<your_gtag>"
+google = "G-JD5RXVHV3L"
 
 # To add hyvor comments
 [extra.commenting]
