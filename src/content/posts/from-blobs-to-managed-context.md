@@ -148,22 +148,21 @@ The decision matrix:
 **Implementation**: Store a "receipt" for each source document—the list of target keys (vector IDs) it produced.
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                        Tracking Table                          │
-├─────────────────┬─────────────────────────┬────────────────────┤
-│   source_key    │      target_keys        │    content_fp      │
-├─────────────────┼─────────────────────────┼────────────────────┤
-│   readme.md     │ [chunk_0, chunk_1, ...] │    0xAB12...       │
-│   guide.md      │ [chunk_0]               │    0xCD34...       │
-└─────────────────┴─────────────────────────┴────────────────────┘
-                              │
-                              ▼
-              When readme.md changes:
-              1. Look up old target_keys → [chunk_0, chunk_1, ...]
-              2. Generate new vectors → [chunk_0', chunk_1', chunk_2']
-              3. Insert new vectors
-              4. Delete old vectors using stored keys
-              5. Update tracking table with new receipt
++------------------------------------------------------------------+
+|                        Tracking Table                            |
++-----------------+-------------------------+----------------------+
+|   source_key    |      target_keys        |     content_fp       |
++-----------------+-------------------------+----------------------+
+|   readme.md     | [chunk_0, chunk_1, ...] |     0xAB12...        |
+|   guide.md      | [chunk_0]               |     0xCD34...        |
++-----------------+-------------------------+----------------------+
+
+When readme.md changes:
+  1. Look up old target_keys -> [chunk_0, chunk_1, ...]
+  2. Generate new vectors -> [chunk_0', chunk_1', chunk_2']
+  3. Insert new vectors
+  4. Delete old vectors using stored keys
+  5. Update tracking table with new receipt
 ```
 
 The tracking table (in PostgreSQL) provides the transaction boundary. Even if the vector database has no transaction support, the tracking table is the authoritative record of what exists. If step 4 fails, the next run retries using stored keys.
