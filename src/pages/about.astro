@@ -1,0 +1,111 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { loadSite } from '../lib/site'
+
+const site = loadSite()
+---
+
+<BaseLayout title="About" description={`About ${site.author}`}>
+  <div class="container">
+    <h1 class="text-3xl font-bold mb-8">About</h1>
+
+    <div class="prose">
+      <p class="text-lg mb-6">
+        Hi, I'm <strong>{site.author}</strong>.
+      </p>
+
+      <p class="mb-6">
+        I'm a Solution Architect at a stealth company working at the intersection of <strong>GenAI, agentic workflows, and data infrastructure</strong>. My focus: making AI systems that actually work in production—grounded in real data, reliably orchestrated, and built to scale.
+      </p>
+
+      <h2 class="text-xl font-semibold mt-8 mb-4">What I'm Building Now</h2>
+      <p class="mb-6">
+        The GenAI wave has created an urgent need to connect LLMs to structured data, orchestrate complex multi-step workflows, and build systems that are observable, cost-efficient, and don't hallucinate your business into the ground. That's where I live.
+      </p>
+      <p class="mb-6">
+        I spend my days thinking about <strong>agentic architectures</strong>, <strong>RAG and data pipelines</strong>, and <strong>workflow orchestration</strong>—turning brittle prompt chains into resilient, production-grade systems.
+      </p>
+
+      <h2 class="text-xl font-semibold mt-8 mb-4">The Foundation</h2>
+      <p class="mb-6">
+        This work is built on a decade of database and distributed systems experience.
+      </p>
+      <p class="mb-6">
+        I co-founded Databend and helped build <a href="https://github.com/databendlabs/databend" target="_blank" rel="noopener noreferrer">Databend</a>—a cloud-native, Rust-based query engine. I took it from first commit to Fortune 500 customers, learning that building a database is hard, but building a business around one is harder.
+      </p>
+      <p class="mb-6">
+        Before that, I worked on infrastructure at Google (Istio/Service Mesh) and Nebula Graph (distributed graph DB). I've debugged Kubernetes networking race conditions, implemented LLVM-JIT query engines, and served as a community release manager for Istio.
+      </p>
+      <p class="mb-6">
+        I also published research at ECCV 2020 on neural networks for image manipulation detection—an early adopter of attention mechanisms before ChatGPT made them mainstream.
+      </p>
+
+      <h2 class="text-xl font-semibold mt-8 mb-4">What I Write About</h2>
+      <ul class="mb-6">
+        <li><strong>GenAI & Agents</strong> – Patterns for building reliable agentic systems, RAG architectures, and LLM orchestration.</li>
+        <li><strong>Data Infrastructure</strong> – Query engines, storage layers, and the plumbing that makes AI possible.</li>
+        <li><strong>Rust & Systems Programming</strong> – Including how we made our SQL parser <a href="https://www.reddit.com/r/rust/comments/1neerpr/we_rebuilt_our_sql_parser_in_rust_33x_faster_with/" target="_blank" rel="noopener noreferrer">33x faster</a>.</li>
+      </ul>
+
+      <h2 class="text-xl font-semibold mt-8 mb-4">Offline</h2>
+      <p class="mb-6">
+        I live in the San Francisco Bay Area. When I'm not architecting workflows or profiling latency, I'm vibe coding—letting AI write the first draft while I steer.
+      </p>
+
+      <h2 class="text-xl font-semibold mt-8 mb-4">Find me</h2>
+      <ul class="social-links">
+        {site.social.github && (
+          <li>
+            <a href={`https://github.com/${site.social.github}`} target="_blank" rel="noopener noreferrer">
+              GitHub
+            </a>
+          </li>
+        )}
+        {site.social.twitter && (
+          <li>
+            <a href={`https://x.com/${site.social.twitter}`} target="_blank" rel="noopener noreferrer">
+              X
+            </a>
+          </li>
+        )}
+        {site.social.linkedin && (
+          <li>
+            <a href={`https://www.linkedin.com/in/${site.social.linkedin}/`} target="_blank" rel="noopener noreferrer">
+              LinkedIn
+            </a>
+          </li>
+        )}
+        {site.social.email && (
+          <li>
+            <a href={`mailto:${site.social.email}`}>
+              Email
+            </a>
+          </li>
+        )}
+      </ul>
+
+      <p class="mt-8 text-gray-600 dark:text-gray-400">
+        Feel free to reach out!
+      </p>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .social-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .social-links a {
+    transition: color 0.2s ease;
+  }
+
+  .social-links a:hover {
+    color: var(--color-accent-hover);
+  }
+</style>

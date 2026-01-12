@@ -1,0 +1,21 @@
+{
+  "name": "zhihanz-blog",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "zhihanz + cloud native blog",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.14",
+    "@tailwindcss/postcss": "^4.1.18",
+    "astro": "^5.16.6",
+    "autoprefixer": "^10.4.23",
+    "gray-matter": "^4.0.3",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "yaml": "^2.8.2"
+  }
+}

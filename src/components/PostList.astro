@@ -1,0 +1,50 @@
+---
+import { formatDate } from '../lib/site'
+
+interface Post {
+  slug: string
+  url: string
+  title: string
+  date: Date
+  description?: string
+  tags: string[]
+  section: string
+}
+
+interface Props {
+  posts: Post[]
+}
+
+const { posts } = Astro.props
+---
+
+<ul class="space-y-8">
+  {posts.map((post) => {
+    const { day, monthYear } = formatDate(post.date)
+    return (
+      <li class="grid grid-cols-12 gap-4">
+        <div class="col-span-2 text-center">
+          <span class="block text-4xl font-semibold">{day}</span>
+          <span class="block text-sm text-gray-600 dark:text-gray-400">{monthYear}</span>
+        </div>
+        <div class="col-span-10">
+          <h3 class="text-xl font-medium mb-1">
+            <a href={post.url} class="hover:text-[--color-accent]">{post.title}</a>
+          </h3>
+          {post.description && (
+            <p class="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
+              {post.description}
+            </p>
+          )}
+          {post.tags.length > 0 && (
+            <div class="flex flex-wrap gap-2 mt-2">
+              {post.tags.slice(0, 3).map((tag) => (
+                <a href={`/tags/${tag}/`} class="tag text-xs">{tag}</a>
+              ))}
+            </div>
+          )}
+        </div>
+      </li>
+    )
+  })}
+</ul>

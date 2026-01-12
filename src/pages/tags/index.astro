@@ -1,0 +1,37 @@
+---
+import { getCollection } from 'astro:content'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+
+const posts = await getCollection('posts')
+const series = await getCollection('series')
+
+const tagCounts = new Map<string, number>()
+for (const post of [...posts, ...series]) {
+  for (const tag of post.data.tags) {
+    tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
+  }
+}
+
+const sortedTags = Array.from(tagCounts.entries())
+  .sort((a, b) => b[1] - a[1])
+---
+
+<BaseLayout title="Tags" description="Browse posts by tag">
+  <div class="container">
+    <h1 class="text-3xl font-bold mb-6">Tags</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-8">
+      Browse posts by topic.
+    </p>
+    {sortedTags.length > 0 ? (
+      <div class="flex flex-wrap gap-3">
+        {sortedTags.map(([tag, count]) => (
+          <a href={`/tags/${tag}/`} class="tag text-base">
+            {tag} <span class="text-gray-500">({count})</span>
+          </a>
+        ))}
+      </div>
+    ) : (
+      <p class="text-gray-500">No tags yet.</p>
+    )}
+  </div>
+</BaseLayout>

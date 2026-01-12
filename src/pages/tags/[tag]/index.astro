@@ -1,0 +1,52 @@
+---
+import { getCollection } from 'astro:content'
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import PostList from '../../../components/PostList.astro'
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts')
+  const series = await getCollection('series')
+
+  const allTags = new Set<string>()
+  for (const post of [...posts, ...series]) {
+    for (const tag of post.data.tags) {
+      allTags.add(tag)
+    }
+  }
+
+  return Array.from(allTags).map((tag) => ({
+    params: { tag }
+  }))
+}
+
+const { tag } = Astro.params
+
+const posts = await getCollection('posts')
+const series = await getCollection('series')
+
+const allPosts = [...posts, ...series]
+  .filter(post => post.data.tags.includes(tag as string))
+  .map(post => ({
+    slug: post.id,
+    url: `/${post.collection}/${post.id}/`,
+    title: post.data.title,
+    date: post.data.date,
+    description: post.data.description,
+    tags: post.data.tags,
+    section: post.collection
+  }))
+  .sort((a, b) => b.date.getTime() - a.date.getTime())
+---
+
+<BaseLayout title={`Tag: ${tag}`} description={`Posts tagged with ${tag}`}>
+  <div class="container">
+    <h1 class="text-3xl font-bold mb-2">Tag: {tag}</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-8">
+      {allPosts.length} post{allPosts.length !== 1 ? 's' : ''} tagged with "{tag}"
+    </p>
+    <PostList posts={allPosts} />
+    <div class="mt-8">
+      <a href="/tags/" class="read-more">&larr; All tags</a>
+    </div>
+  </div>
+</BaseLayout>

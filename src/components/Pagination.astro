@@ -1,0 +1,32 @@
+---
+interface Props {
+  currentPage: number
+  totalPages: number
+  baseUrl: string
+}
+
+const { currentPage, totalPages, baseUrl } = Astro.props
+
+function getPageUrl(page: number): string {
+  if (page === 1) return baseUrl
+  return `${baseUrl}page/${page}/`
+}
+---
+
+{totalPages > 1 && (
+  <nav class="flex justify-center gap-4 mt-12">
+    {currentPage > 1 && (
+      <a href={getPageUrl(currentPage - 1)} class="read-more">
+        &larr; Newer
+      </a>
+    )}
+    <span class="text-gray-600 dark:text-gray-400">
+      Page {currentPage} of {totalPages}
+    </span>
+    {currentPage < totalPages && (
+      <a href={getPageUrl(currentPage + 1)} class="read-more">
+        Older &rarr;
+      </a>
+    )}
+  </nav>
+)}

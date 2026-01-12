@@ -1,0 +1,64 @@
+---
+import { getCollection } from 'astro:content'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+
+const seriesCollection = await getCollection('series')
+
+// Group by series name
+const seriesMap = new Map<string, typeof seriesCollection>()
+for (const post of seriesCollection) {
+  const seriesName = post.data.series
+  if (!seriesMap.has(seriesName)) {
+    seriesMap.set(seriesName, [])
+  }
+  seriesMap.get(seriesName)!.push(post)
+}
+
+// Sort each series by part number
+for (const [, posts] of seriesMap) {
+  posts.sort((a, b) => a.data.part - b.data.part)
+}
+
+// Convert to array and sort by latest post date
+const seriesList = Array.from(seriesMap.entries())
+  .map(([name, posts]) => ({
+    name,
+    posts,
+    latestDate: Math.max(...posts.map(p => p.data.date.getTime()))
+  }))
+  .sort((a, b) => b.latestDate - a.latestDate)
+---
+
+<BaseLayout title="Series" description="Multi-part article series">
+  <div class="container">
+    <h1 class="text-3xl font-bold mb-6">Series</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-8">
+      Multi-part article series diving deep into specific topics.
+    </p>
+
+    {seriesList.length > 0 ? (
+      <div class="space-y-10">
+        {seriesList.map(({ name, posts }) => (
+          <div class="border-l-4 border-[--color-accent] pl-6">
+            <h2 class="text-2xl font-semibold mb-4">{name}</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">
+              {posts.length} part{posts.length !== 1 ? 's' : ''}
+            </p>
+            <ol class="space-y-3">
+              {posts.map((post) => (
+                <li class="flex items-baseline gap-3">
+                  <span class="text-[--color-accent] font-medium">Part {post.data.part}:</span>
+                  <a href={`/series/${post.id}/`} class="hover:text-[--color-accent]">
+                    {post.data.title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p class="text-gray-500">No series yet. Check back soon!</p>
+    )}
+  </div>
+</BaseLayout>

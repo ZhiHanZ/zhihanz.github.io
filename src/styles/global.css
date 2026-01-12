@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --font-mono: "Recursive", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-link: hsl(0, 0%, 21%);
+  --color-link-hover: hsl(204, 71%, 39%);
+  --color-accent: hsl(204, 71%, 39%);
+  --color-accent-hover: hsl(348, 100%, 61%);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-mono);
+  }
+
+  body {
+    @apply min-h-screen flex flex-col;
+  }
+
+  a {
+    @apply text-[--color-link] hover:text-[--color-link-hover] transition-colors;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold leading-tight;
+  }
+
+  h1 { @apply text-3xl md:text-4xl mb-4; }
+  h2 { @apply text-2xl md:text-3xl mb-3; }
+  h3 { @apply text-xl md:text-2xl mb-2; }
+
+  code {
+    @apply bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm;
+  }
+
+  pre {
+    @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4;
+  }
+
+  pre code {
+    @apply bg-transparent p-0;
+  }
+
+  blockquote {
+    @apply border-l-4 border-[--color-accent] pl-4 italic my-4 text-gray-600 dark:text-gray-400;
+  }
+}
+
+@layer components {
+  .container {
+    @apply max-w-4xl mx-auto px-4;
+  }
+
+  .prose {
+    @apply leading-relaxed;
+  }
+
+  .prose p {
+    @apply my-4;
+  }
+
+  .prose ul, .prose ol {
+    @apply my-4 pl-6;
+  }
+
+  .prose li {
+    @apply my-1;
+  }
+
+  .prose img {
+    @apply rounded-lg my-6 mx-auto;
+  }
+
+  .read-more {
+    @apply text-[--color-accent] hover:text-[--color-accent-hover] font-medium;
+  }
+
+  .tag {
+    @apply inline-block border border-[--color-accent] text-[--color-accent] px-2 py-0.5 rounded text-sm hover:bg-[--color-accent] hover:text-white transition-colors;
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-link: hsl(0, 0%, 85%);
+  }
+
+  body {
+    @apply bg-gray-900 text-gray-200;
+  }
+}

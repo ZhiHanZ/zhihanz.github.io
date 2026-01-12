@@ -1,0 +1,27 @@
+---
+import { loadSite } from '../lib/site'
+
+const site = loadSite()
+const { giscus } = site
+---
+
+{giscus.repo && (
+  <div class="giscus mt-8">
+    <script
+      src="https://giscus.app/client.js"
+      data-repo={giscus.repo}
+      data-repo-id={giscus.repoId || ''}
+      data-category={giscus.category}
+      data-category-id={giscus.categoryId || ''}
+      data-mapping="pathname"
+      data-strict="0"
+      data-reactions-enabled="1"
+      data-emit-metadata="0"
+      data-input-position="bottom"
+      data-theme="preferred_color_scheme"
+      data-lang="en"
+      crossorigin="anonymous"
+      async
+    />
+  </div>
+)}

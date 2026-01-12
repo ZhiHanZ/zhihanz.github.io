@@ -1,0 +1,37 @@
+---
+import { loadSite } from '../lib/site'
+
+const site = loadSite()
+const menu = site.menu.main.sort((a, b) => a.weight - b.weight)
+---
+
+<header class="border-b border-gray-200 dark:border-gray-700">
+  <div class="container py-4">
+    <nav class="flex flex-wrap items-center justify-between gap-4">
+      <a href="/" class="text-xl font-semibold hover:text-[--color-accent]">
+        {site.title}
+      </a>
+      <div class="flex flex-wrap gap-5 text-base">
+        {menu.map((item) => (
+          <a
+            href={item.url}
+            class="hover:text-[--color-accent]"
+          >
+            {item.name}
+          </a>
+        ))}
+        {site.social.github && (
+          <a
+            href={`https://github.com/${site.social.github}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:text-[--color-accent]"
+            aria-label="GitHub"
+          >
+            GitHub
+          </a>
+        )}
+      </div>
+    </nav>
+  </div>
+</header>
