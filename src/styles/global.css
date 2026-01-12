@@ -71,6 +71,22 @@
     @apply rounded-lg my-6 mx-auto;
   }
 
+  .prose table {
+    @apply w-full my-6 border-collapse;
+  }
+
+  .prose th {
+    @apply bg-gray-100 dark:bg-gray-800 px-4 py-2 text-left font-semibold border border-gray-300 dark:border-gray-700;
+  }
+
+  .prose td {
+    @apply px-4 py-2 border border-gray-300 dark:border-gray-700;
+  }
+
+  .prose tr:nth-child(even) {
+    @apply bg-gray-50 dark:bg-gray-800/50;
+  }
+
   .read-more {
     @apply text-[--color-accent] hover:text-[--color-accent-hover] font-medium;
   }

@@ -148,13 +148,13 @@ The decision matrix:
 **Implementation**: Store a "receipt" for each source document—the list of target keys (vector IDs) it produced.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Tracking Table                              │
+┌────────────────────────────────────────────────────────────────┐
+│                        Tracking Table                          │
 ├─────────────────┬─────────────────────────┬────────────────────┤
-│   source_key    │      target_keys        │   content_fp       │
+│   source_key    │      target_keys        │    content_fp      │
 ├─────────────────┼─────────────────────────┼────────────────────┤
-│   readme.md     │ [chunk_0, chunk_1, ...] │   0xAB12...        │
-│   guide.md      │ [chunk_0]               │   0xCD34...        │
+│   readme.md     │ [chunk_0, chunk_1, ...] │    0xAB12...       │
+│   guide.md      │ [chunk_0]               │    0xCD34...       │
 └─────────────────┴─────────────────────────┴────────────────────┘
                               │
                               ▼
