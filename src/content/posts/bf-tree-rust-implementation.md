@@ -50,39 +50,40 @@ The mini-page serves three functions described in the paper:
 This variable sizing is why BF-Tree uses less memory than a buffer pool for the same number of cached key ranges. A buffer pool allocates 4KB per cached page regardless of how many records are hot. BF-Tree allocates 128 bytes for a cold key range, 512 bytes for a warm one, and 2048 bytes for a hot one. The same 32MB of buffer memory covers far more key ranges.
 
 <script type="text/typogram">
-                        +------------------+
-                        |   B-Tree Index   |
-                        |   (inner nodes)  |
-                        +--------+---------+
-                                 |
-                    routes to leaf page IDs
-                                 |
-                                 v
-    +-----------------------------------------------------+
-    |         Page Table: PageID -> PageLocation          |
-    |  +----------+ +----------+ +----------+             |
-    |  |Mini(*ptr)| |Full(*ptr)| |Base(off) |  ...        |
-    |  +-----+----+ +-----+----+ +-----+----+             |
-    +--------+------------+------------+------------------+
-             |            |            |
-             v            v            |
-    +-----------------------------------------------------+
-    |              Circular Buffer (Ring)                 |
-    |  +------+--------+--------+--------+------+-----+   |
-    |  |128B  | 256B   | 128B   | 4096B  |960B  |free |   |
-    |  |mini  | mini   | mini   | full   |mini  |     |   |
-    |  +------+--------+--------+--------+------+-----+   |
-    |  ^ head                              ^ tail         |
-    |  (evict oldest)                      (allocate new) |
-    +-----------------------------------------------------+
-                          | flush dirty records on eviction
-                          v
-    +-----------------------------------------------------+
-    |                  Disk (base pages)                  |
-    |  +----------+----------+----------+-------------+   |
-    |  | 4KB page | 4KB page | 4KB page |    ...      |   |
-    |  +----------+----------+----------+-------------+   |
-    +-----------------------------------------------------+
+                    +------------------+
+                    |   B-Tree Index   |
+                    |  (inner nodes)   |
+                    +--------+---------+
+                             |
+                             | routes to leaf page IDs
+                             v
++---------------------------------------------------------------+
+|                Page Table: PageID -> PageLocation             |
+|   +-----------+   +-----------+   +-----------+               |
+|   | Mini(ptr) |   | Full(ptr) |   | Base(off) |   ...         |
+|   +-----+-----+   +-----+-----+   +-----+-----+               |
++---------|--------------|--------------|-----------------------+
+          |              |              |
+          |   +----------+              |
+          |   |                         |
+          v   v                         |
++----------------------------------+    |
+|      Circular Buffer (Ring)      |    |
+| +------+------+------+------+    |    |
+| | 128B | 256B | 4KB  | free |    |    |
+| | mini | mini | full |      |    |    |
+| +------+------+------+------+    |    |
+| ^head                 ^tail      |    |
++----------------------------------+    |
+          |                             |
+          | flush on eviction           |
+          v                             v
++---------------------------------------------------------------+
+|                     Disk (base pages)                         |
+|   +----------+   +----------+   +----------+                  |
+|   | 4KB page |   | 4KB page |   | 4KB page |   ...            |
+|   +----------+   +----------+   +----------+                  |
++---------------------------------------------------------------+
 </script>
 
 The mini-page starts small (128 bytes for a key range that has seen one write) and grows only as needed (up to 4096 bytes for a hot range accumulating many updates). Cold key ranges cost almost no memory. Hot key ranges absorb writes in-memory without touching disk. The same 32MB of buffer memory covers far more key ranges than a buffer pool, because each mini-page holds only the records worth caching, not the 4KB page surrounding them.
