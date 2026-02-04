@@ -16,13 +16,13 @@ A B-tree index works well until the dataset outgrows RAM. At that point, every w
 Each leaf page holds a sorted array of key-value records. The internal layout is a dual-growing structure: record metadata (8 bytes each) grows forward from the front of the page, while key-value payloads grow backward from the end. When the two regions meet, the page is full.
 
 ```
-┌──────────────────────────────────────────────────────┐
-│ Page header (24 bytes)                                │
-├──────────────────────────────────────────────────────┤
-│ [KVMeta][KVMeta]...          ...[val|key|val|key]    │
-│  ───────────▶              ◀─────────────────────── │
-│  metadata grows forward     payloads grow backward   │
-└──────────────────────────────────────────────────────┘
++------------------------------------------------------+
+| Page header (24 bytes)                               |
++------------------------------------------------------+
+| [KVMeta][KVMeta]...          ...[val|key|val|key]    |
+|  ------------>              <----------------------  |
+|  metadata grows forward     payloads grow backward   |
++------------------------------------------------------+
 ```
 
 This layout is efficient for both point lookups (binary search on the sorted metadata) and range scans (records are physically adjacent). The problem appears when the dataset no longer fits in memory.
@@ -50,39 +50,39 @@ The mini-page serves three functions described in the paper:
 This variable sizing is why BF-Tree uses less memory than a buffer pool for the same number of cached key ranges. A buffer pool allocates 4KB per cached page regardless of how many records are hot. BF-Tree allocates 128 bytes for a cold key range, 512 bytes for a warm one, and 2048 bytes for a hot one. The same 32MB of buffer memory covers far more key ranges.
 
 ```
-                        ┌──────────────────┐
-                        │   B-Tree Index    │
-                        │   (inner nodes)   │
-                        └────────┬─────────┘
-                                 │
+                        +------------------+
+                        |   B-Tree Index   |
+                        |   (inner nodes)  |
+                        +--------+---------+
+                                 |
                     routes to leaf page IDs
-                                 │
-                                 ▼
-    ┌─────────────────────────────────────────────────────┐
-    │         Page Table: PageID → PageLocation            │
-    │  ┌──────────┐ ┌──────────┐ ┌──────────┐            │
-    │  │Mini(*ptr)│ │Full(*ptr)│ │Base(off) │  ...       │
-    │  └─────┬────┘ └─────┬────┘ └─────┬────┘            │
-    └────────┼────────────┼────────────┼──────────────────┘
-             │            │            │
-             ▼            ▼            │
-    ┌─────────────────────────────────────────────────────┐
-    │              Circular Buffer (Ring)                   │
-    │  ┌──────┬────────┬────────┬────────┬──────┬─────┐   │
-    │  │128B  │ 256B   │ 128B   │ 4096B  │960B  │free │   │
-    │  │mini  │ mini   │ mini   │ full   │mini  │     │   │
-    │  └──────┴────────┴────────┴────────┴──────┴─────┘   │
-    │  ↑ head                              ↑ tail         │
-    │  (evict oldest)                      (allocate new) │
-    └─────────────────────────────────────────────────────┘
-                          │ flush dirty records on eviction
-                          ▼
-    ┌─────────────────────────────────────────────────────┐
-    │                  Disk (base pages)                    │
-    │  ┌──────────┬──────────┬──────────┬─────────────┐   │
-    │  │ 4KB page │ 4KB page │ 4KB page │    ...      │   │
-    │  └──────────┴──────────┴──────────┴─────────────┘   │
-    └─────────────────────────────────────────────────────┘
+                                 |
+                                 v
+    +-----------------------------------------------------+
+    |         Page Table: PageID -> PageLocation          |
+    |  +----------+ +----------+ +----------+             |
+    |  |Mini(*ptr)| |Full(*ptr)| |Base(off) |  ...        |
+    |  +-----+----+ +-----+----+ +-----+----+             |
+    +--------+------------+------------+------------------+
+             |            |            |
+             v            v            |
+    +-----------------------------------------------------+
+    |              Circular Buffer (Ring)                 |
+    |  +------+--------+--------+--------+------+-----+   |
+    |  |128B  | 256B   | 128B   | 4096B  |960B  |free |   |
+    |  |mini  | mini   | mini   | full   |mini  |     |   |
+    |  +------+--------+--------+--------+------+-----+   |
+    |  ^ head                              ^ tail         |
+    |  (evict oldest)                      (allocate new) |
+    +-----------------------------------------------------+
+                          | flush dirty records on eviction
+                          v
+    +-----------------------------------------------------+
+    |                  Disk (base pages)                  |
+    |  +----------+----------+----------+-------------+   |
+    |  | 4KB page | 4KB page | 4KB page |    ...      |   |
+    |  +----------+----------+----------+-------------+   |
+    +-----------------------------------------------------+
 ```
 
 The mini-page starts small (128 bytes for a key range that has seen one write) and grows only as needed (up to 4096 bytes for a hot range accumulating many updates). Cold key ranges cost almost no memory. Hot key ranges absorb writes in-memory without touching disk. The same 32MB of buffer memory covers far more key ranges than a buffer pool, because each mini-page holds only the records worth caching, not the 4KB page surrounding them.
@@ -90,13 +90,13 @@ The mini-page starts small (128 bytes for a key range that has seen one write) a
 ```
 Read "bob" (hot, in mini-page):           Read "charlie" (cold, not in mini-page):
   tree.read("bob")                           tree.read("charlie")
-    → traverse to leaf                         → traverse to leaf
-    → PageLocation::Mini(ptr)                  → PageLocation::Mini(ptr)
-    → search mini-page: FOUND                  → search mini-page: NOT FOUND
-    → return (no disk I/O)                     → follow next_level → disk offset
-                                               → load 4KB base page from disk
-                                               → search base page: FOUND
-                                               → return (1 disk I/O)
+    -> traverse to leaf                        -> traverse to leaf
+    -> PageLocation::Mini(ptr)                 -> PageLocation::Mini(ptr)
+    -> search mini-page: FOUND                 -> search mini-page: NOT FOUND
+    -> return (no disk I/O)                    -> follow next_level -> disk offset
+                                               -> load 4KB base page from disk
+                                               -> search base page: FOUND
+                                               -> return (1 disk I/O)
 ```
 
 This design gives BF-Tree the read performance of a B-tree (single traversal path, no multi-level merging) with write amplification closer to an LSM-tree (writes are batched in memory). In the paper's benchmarks, BF-Tree is 2x faster than both B-trees and LSM-trees for point lookups, 6x faster than B-trees for writes, and 2.5x faster than RocksDB for scans.
@@ -132,10 +132,10 @@ An allocator is a piece of code that manages a region of memory, handing out chu
 ```
 A memory region managed by an allocator:
 
-┌────────┬──────────┬────────┬──────────────────┬────────┬──────┐
-│ used   │   free   │ used   │      free        │ used   │ free │
-│ 64B    │   128B   │ 256B   │      512B        │ 128B   │      │
-└────────┴──────────┴────────┴──────────────────┴────────┴──────┘
++--------+----------+--------+------------------+--------+------+
+| used   |   free   | used   |      free        | used   | free |
+| 64B    |   128B   | 256B   |      512B        | 128B   |      |
++--------+----------+--------+------------------+--------+------+
 ```
 
 The challenge is efficiency. A naive allocator that searches the entire free space on every allocation is too slow. Real allocators use sophisticated data structures (free lists, size classes, thread-local caches) to make allocation fast.
@@ -172,16 +172,16 @@ Instead of fighting the global allocator, BF-Tree allocates one large contiguous
 
 ```
 Global allocator (scattered across heap):
-  ┌───┐    ┌────┐         ┌──┐   ┌─────┐        ┌───┐
-  │256│    │128 │         │64│   │ 512 │        │128│
-  └───┘    └────┘         └──┘   └─────┘        └───┘
+  +---+    +----+         +--+   +-----+        +---+
+  |256|    |128 |         |64|   | 512 |        |128|
+  +---+    +----+         +--+   +-----+        +---+
   No ordering. No adjacency. No metadata.
 
 Circular buffer (contiguous ring, ordered by age):
-  ┌────────────────────────────────────────────────────────────┐
-  │[hdr|256B][hdr|128B][hdr|512B][hdr|128B][hdr|960B]  free  │
-  │↑ head (oldest)                              ↑ tail (newest)│
-  └────────────────────────────────────────────────────────────┘
+  +------------------------------------------------------------+
+  |[hdr|256B][hdr|128B][hdr|512B][hdr|128B][hdr|960B]  free    |
+  |^ head (oldest)                              ^ tail (newest)|
+  +------------------------------------------------------------+
   FIFO order. Adjacent. 8-byte header per block.
 ```
 
@@ -243,11 +243,11 @@ struct States {
 ```
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  evicted  │    live data (mini-pages)      │  free space     │
-│           │                                │                 │
-└──────────────────────────────────────────────────────────────┘
-↑ head      ↑ evicting                       ↑ tail
++--------------------------------------------------------------+
+|  evicted  |    live data (mini-pages)      |  free space     |
+|           |                                |                 |
++--------------------------------------------------------------+
+^ head      ^ evicting                       ^ tail
 ```
 
 The invariant is `head_addr <= evicting_addr <= tail_addr`. New allocations bump `tail_addr` forward. Eviction reclaims from `head_addr`. The region between head and tail is live data. The `evicting_addr` sits between head and tail: it marks how far eviction has been claimed. Blocks between `head_addr` and `evicting_addr` are being evicted (their data may be flushed to disk right now). Blocks between `evicting_addr` and `tail_addr` are live.
@@ -256,7 +256,7 @@ But what are these addresses, exactly? They are not byte offsets into the array.
 
 ### Logical vs physical addressing
 
-In a concurrent ring buffer, multiple threads atomically update `head_addr` and `tail_addr`. If these were physical offsets that wrap around (0 → capacity → 0), you would face the ABA problem: Thread A reads `tail = 100`, Thread B allocates enough to wrap `tail` back to `100`, Thread A's compare-and-swap succeeds when it should fail because the buffer state has completely changed. Monotonically increasing logical addresses eliminate this bug class. Two addresses can only be equal if they refer to the same allocation, not to different allocations that happen to land at the same physical offset after wraparound.
+In a concurrent ring buffer, multiple threads atomically update `head_addr` and `tail_addr`. If these were physical offsets that wrap around (0 -> capacity -> 0), you would face the ABA problem: Thread A reads `tail = 100`, Thread B allocates enough to wrap `tail` back to `100`, Thread A's compare-and-swap succeeds when it should fail because the buffer state has completely changed. Monotonically increasing logical addresses eliminate this bug class. Two addresses can only be equal if they refer to the same allocation, not to different allocations that happen to land at the same physical offset after wraparound.
 
 The conversion from logical to physical is a single bitwise AND:
 
@@ -319,13 +319,13 @@ pub fn alloc(&self, size: usize) -> Result<CircularBufferPtr<'_>, CircularBuffer
     while let Some(ptr) = self.free_list.remove(size) {
         let meta = CircularBuffer::get_meta_from_data_ptr(ptr.as_ptr());
 
-        // Skip blocks near the head — they are about to be evicted anyway.
+        // Skip blocks near the head - they are about to be evicted anyway.
         if self.ptr_is_copy_on_access(ptr.as_ptr()) {
             meta.states.free_list_to_tombstone();
             continue;
         }
 
-        // CAS: FreeListed → NotReady. Exactly one thread wins.
+        // CAS: FreeListed -> NotReady. Exactly one thread wins.
         match meta.states.state.compare_exchange_weak(
             MetaState::FreeListed.into(),
             MetaState::NotReady.into(),
@@ -367,7 +367,7 @@ Notice the `Ordering` parameters on the CAS: `AcqRel` on success, `Relaxed` on f
 - **`Release`**: All writes before this operation are visible to threads that do a corresponding `Acquire`. Used when publishing data.
 - **`AcqRel`**: Both `Acquire` and `Release`. Used for read-modify-write operations that both consume and publish data. This is the most common ordering for state transitions in BF-Tree.
 
-In the `alloc()` code: on a successful CAS (`FreeListed → NotReady`), `AcqRel` ensures the allocating thread sees all data the previous owner wrote (`Acquire`), and any thread that later reads `NotReady` will see the allocating thread's writes (`Release`). On failure, `Relaxed` is fine because the thread just retries with the next free-list entry.
+In the `alloc()` code: on a successful CAS (`FreeListed -> NotReady`), `AcqRel` ensures the allocating thread sees all data the previous owner wrote (`Acquire`), and any thread that later reads `NotReady` will see the allocating thread's writes (`Release`). On failure, `Relaxed` is fine because the thread just retries with the next free-list entry.
 
 ### The allocation guard: `CircularBufferPtr`
 
@@ -383,7 +383,7 @@ pub struct CircularBufferPtr<'a> {
 impl Drop for CircularBufferPtr<'_> {
     fn drop(&mut self) {
         let meta = CircularBuffer::get_meta_from_data_ptr(self.ptr);
-        meta.states.to_ready();  // CAS: NotReady → Ready
+        meta.states.to_ready();  // CAS: NotReady -> Ready
     }
 }
 ```
@@ -415,11 +415,11 @@ To make this concrete, trace what happens physically when the tree inserts a rec
 
 ```
 Physical memory at logical address 1000:
-┌─────────────────────┬──────────────────────────────────────────┐
-│  AllocMeta (8 bytes) │  payload (128 bytes, uninitialized)      │
-│  size: 128           │                                          │
-│  state: NotReady (0) │  ← guard.as_ptr() points here            │
-└─────────────────────┴──────────────────────────────────────────┘
++---------------------+------------------------------------------+
+|  AllocMeta (8 bytes) |  payload (128 bytes, uninitialized)     |
+|  size: 128           |                                         |
+|  state: NotReady (0) |  <- guard.as_ptr() points here          |
++---------------------+------------------------------------------+
                                                 tail_addr = 1136
 ```
 
@@ -450,25 +450,25 @@ After the cast, `LeafNode::initialize_mini_page()` writes the 24-byte header int
 
 ```
 Physical memory at logical address 1000:
-┌─────────────────────┬──────────────────────────────────────────┐
-│  AllocMeta (8 bytes) │  LeafNode (128 bytes)                    │
-│  size: 128           │  ┌──────────┬───────┬──────────────────┐ │
-│  state: NotReady (0) │  │header 24B│KVMeta │  ...  |val|key   │ │
-│                      │  └──────────┴───────┴──────────────────┘ │
-└─────────────────────┴──────────────────────────────────────────┘
++---------------------+------------------------------------------+
+|  AllocMeta (8 bytes) |  LeafNode (128 bytes)                   |
+|  size: 128           |  +----------+-------+------------------+|
+|  state: NotReady (0) |  |header 24B|KVMeta |  ...  |val|key   ||
+|                      |  +----------+-------+------------------+|
++---------------------+------------------------------------------+
 ```
 
 **Step 5: The tree updates the page table.** It writes `PageLocation::Mini(ptr)` into the page table entry for this leaf page. Now any future read or write to this key range will find the mini-page.
 
-**Step 6: The tree drops the `CircularBufferPtr` guard.** The guard's `Drop` implementation fires, performing `CAS(NotReady → Ready)`. The block is now published.
+**Step 6: The tree drops the `CircularBufferPtr` guard.** The guard's `Drop` implementation fires, performing `CAS(NotReady -> Ready)`. The block is now published.
 
 ```
 Physical memory (after guard drop):
-┌─────────────────────┬──────────────────────────────────────────┐
-│  AllocMeta (8 bytes) │  LeafNode (128 bytes, initialized)       │
-│  size: 128           │  ... contains one record ...             │
-│  state: Ready (1)    │                                          │
-└─────────────────────┴──────────────────────────────────────────┘
++---------------------+------------------------------------------+
+|  AllocMeta (8 bytes) |  LeafNode (128 bytes, initialized)      |
+|  size: 128           |  ... contains one record ...            |
+|  state: Ready (1)    |                                         |
++---------------------+------------------------------------------+
 ```
 
 This six-step sequence (alloc, cast, initialize, update page table, drop guard, published) happens every time the tree creates a new mini-page. The allocator provides raw bytes; the tree interprets them as a `LeafNode`; the guard ensures the block is not evicted before initialization completes.
@@ -496,7 +496,7 @@ This section traces the growth path, introduces `TombstoneHandle`, and shows how
 To understand growth, we first need to see where it happens. The `insert()` method is a retry loop that calls `write_inner()`:
 
 ```rust
-// tree.rs, insert() — simplified
+// tree.rs, insert() - simplified
 pub fn insert(&self, key: &[u8], value: &[u8]) -> LeafInsertResult {
     let backoff = Backoff::new();
     loop {
@@ -517,7 +517,7 @@ pub fn insert(&self, key: &[u8], value: &[u8]) -> LeafInsertResult {
 Inside `write_inner()`, the logic dispatches on `PageLocation`:
 
 ```rust
-// tree.rs, write_inner() — simplified
+// tree.rs, write_inner() - simplified
 fn write_inner(&self, write_op: WriteOp, aggressive_split: bool)
     -> Result<(), TreeError>
 {
@@ -572,7 +572,7 @@ Growing a mini-page is not as simple as reallocating. The old block is in the ci
 Here is the four-step sequence in code:
 
 ```rust
-// mini_page_op.rs — simplified
+// mini_page_op.rs - simplified
 // Step 1: Claim exclusive rights on the old mini-page.
 let h = storage.begin_dealloc_mini_page(mini_page)?;
 
@@ -585,7 +585,7 @@ mini_page.copy_initialize_to(new_ptr, new_size, true);
 // Step 4: Update page table, insert new record, publish, deallocate old.
 self.create_cache_page_loc(PageLocation::Mini(new_mini_ptr));
 self.load_cache_page_mut(new_mini_ptr).insert(key, value, op_type, 0);
-drop(mini_page_guard);           // publishes new block (NotReady → Ready)
+drop(mini_page_guard);           // publishes new block (NotReady -> Ready)
 storage.finish_dealloc_mini_page(h);  // reclaims old block
 ```
 
@@ -620,7 +620,7 @@ pub struct TombstoneHandle {
 impl Drop for TombstoneHandle {
     fn drop(&mut self) {
         let meta = CircularBuffer::get_meta_from_data_ptr(self.ptr);
-        meta.states.revert_to_ready();  // CAS: BeginTombstone → Ready
+        meta.states.revert_to_ready();  // CAS: BeginTombstone -> Ready
     }
 }
 ```
@@ -632,7 +632,7 @@ Acquiring a `TombstoneHandle` requires winning the CAS race:
 ```rust
 fn acquire_exclusive_dealloc_handle(ptr: *mut u8) -> Result<TombstoneHandle, ...> {
     let meta = CircularBuffer::get_meta_from_data_ptr(ptr);
-    if meta.states.try_begin_tombstone() {  // CAS: Ready → BeginTombstone
+    if meta.states.try_begin_tombstone() {  // CAS: Ready -> BeginTombstone
         Ok(TombstoneHandle { ptr })
     } else {
         Err(...)  // another thread got it first
@@ -666,11 +666,11 @@ The `TombstoneHandle`'s `Drop` does the first one (revert to `Ready`). But on th
 fn dealloc_wrong(handle: TombstoneHandle) {
     let ptr = handle.ptr;           // copy the raw pointer out
     let meta = get_meta(ptr);
-    meta.states.to_freelist();      // state: BeginTombstone → FreeListed ✓
+    meta.states.to_freelist();      // state: BeginTombstone -> FreeListed
 
     // But now handle goes out of scope...
     // Drop fires automatically!
-    // Drop tries: BeginTombstone → Ready
+    // Drop tries: BeginTombstone -> Ready
     // But state is already FreeListed, not BeginTombstone!
     // The CAS fails or corrupts the state machine.
 }
@@ -694,34 +694,34 @@ To see why this matters, trace both paths:
 
 ```
 WITHOUT mem::forget (BROKEN):
-  1. acquire_exclusive_dealloc_handle(ptr)  → state: 1 → 3
-  2. let raw_ptr = handle.ptr;              → copy the pointer
-  3. handle goes out of scope               → Drop fires!
-     └── revert_to_ready()                  → state: 3 → 1  ← WRONG
-  4. meta.states.to_freelist()              → expects state 3, finds 1 → PANIC
+  1. acquire_exclusive_dealloc_handle(ptr)  -> state: 1 -> 3
+  2. let raw_ptr = handle.ptr;              -> copy the pointer
+  3. handle goes out of scope               -> Drop fires!
+     +-- revert_to_ready()                  -> state: 3 -> 1  <- WRONG
+  4. meta.states.to_freelist()              -> expects state 3, finds 1 -> PANIC
 
 WITH mem::forget (CORRECT):
-  1. acquire_exclusive_dealloc_handle(ptr)  → state: 1 → 3
-  2. let raw_ptr = handle.into_ptr();       → copy pointer, then forget(self)
-     └── Drop is suppressed                 → state stays at 3
-  3. meta.states.to_freelist()              → state: 3 → 4  ← CORRECT
+  1. acquire_exclusive_dealloc_handle(ptr)  -> state: 1 -> 3
+  2. let raw_ptr = handle.into_ptr();       -> copy pointer, then forget(self)
+     +-- Drop is suppressed                 -> state stays at 3
+  3. meta.states.to_freelist()              -> state: 3 -> 4  <- CORRECT
 ```
 
 The `dealloc_inner()` function uses this pattern:
 
 ```rust
-// circular_buffer/mod.rs, dealloc_inner() — simplified
+// circular_buffer/mod.rs, dealloc_inner() - simplified
 fn dealloc_inner(&self, handle: TombstoneHandle, add_to_freelist: bool) {
     let ptr = handle.into_ptr();  // mem::forget suppresses Drop
     let meta = CircularBuffer::get_meta_from_data_ptr(ptr);
 
     if !add_to_freelist || self.ptr_is_copy_on_access(ptr) {
-        meta.states.to_tombstone();  // CAS: BeginTombstone → Tombstone
+        meta.states.to_tombstone();  // CAS: BeginTombstone -> Tombstone
         return;
     }
 
     match self.free_list.try_add(ptr, meta.size as usize) {
-        Ok(_) => meta.states.to_freelist(),    // CAS: BeginTombstone → FreeListed
+        Ok(_) => meta.states.to_freelist(),    // CAS: BeginTombstone -> FreeListed
         Err(_) => meta.states.to_tombstone(),  // contention, skip free list
     }
 }
@@ -754,59 +754,59 @@ Here is what happens to the physical memory at each stage:
 ```
 STAGE 1: Block is live (state: Ready, holding a LeafNode with records)
 
-  ┌──────────────────────┬──────────────────────────────────────┐
-  │  AllocMeta (8 bytes)  │  payload: LeafNode (128 bytes)       │
-  │  size: 128            │  [header][metadata][record data]     │
-  │  state: Ready         │                                      │
-  └──────────────────────┴──────────────────────────────────────┘
+  +----------------------+--------------------------------------+
+  |  AllocMeta (8 bytes) |  payload: LeafNode (128 bytes)       |
+  |  size: 128           |  [header][metadata][record data]     |
+  |  state: Ready        |                                      |
+  +----------------------+--------------------------------------+
 
 STAGE 2: Block dies, added to 128-byte free list (state: FreeListed)
 
-  ┌──────────────────────┬──────────────────────────────────────┐
-  │  AllocMeta (8 bytes)  │  payload (128 bytes, reinterpreted)  │
-  │  size: 128            │  ┌──────────────┬──────────────────┐ │
-  │  state: FreeListed    │  │ next: *ptr   │ ...stale bytes...│ │
-  └──────────────────────┴──┴──────────────┴──────────────────┴─┘
-                                   │
+  +----------------------+--------------------------------------+
+  |  AllocMeta (8 bytes) |  payload (128 bytes, reinterpreted)  |
+  |  size: 128           |  +--------------+------------------+ |
+  |  state: FreeListed   |  | next: *ptr   | ...stale bytes...| |
+  +----------------------+--+--------------+------------------+-+
+                                   |
                     points to next dead block in the 128-byte list
 
-STAGE 3: alloc(128) reuses this block (state: NotReady → Ready)
+STAGE 3: alloc(128) reuses this block (state: NotReady -> Ready)
 
-  ┌──────────────────────┬──────────────────────────────────────┐
-  │  AllocMeta (8 bytes)  │  payload: NEW LeafNode (128 bytes)   │
-  │  size: 128            │  [header][metadata][new records]     │
-  │  state: Ready         │                                      │
-  └──────────────────────┴──────────────────────────────────────┘
+  +----------------------+--------------------------------------+
+  |  AllocMeta (8 bytes) |  payload: NEW LeafNode (128 bytes)   |
+  |  size: 128           |  [header][metadata][new records]     |
+  |  state: Ready        |                                      |
+  +----------------------+--------------------------------------+
 ```
 
 Adding a dead block casts the payload pointer to `*mut ListNode` and links it into the per-size-class list. Retrieval is the reverse: pop from the list head and return the pointer. One subtlety: `try_add` uses `try_lock` (non-blocking), while `remove` uses `lock` (blocking). If adding to the free list would block, the code skips it and marks the block `Tombstone` instead. The block will still be reclaimed when the evictor passes over it. On the allocation side, waiting briefly for the free list lock is acceptable since allocation can already block on eviction.
 
-After `remove()` returns a pointer, `alloc()` still needs to claim the block with CAS (`FreeListed → NotReady`) because the evictor might be racing to reclaim the same block.
+After `remove()` returns a pointer, `alloc()` still needs to claim the block with CAS (`FreeListed -> NotReady`) because the evictor might be racing to reclaim the same block.
 
 ### Scenario: the growth path vs. the evictor
 
 A mini-page is full. Thread A (writer) wants to grow it to a larger size class. Thread B (evictor) wants to evict it because the buffer is full. Both need exclusive access to the block. Who wins?
 
 ```
-Time ──────────────────────────────────────────────────────────►
+Time --------------------------------------------------------------->
 
 Thread A (growth path):
   storage.begin_dealloc_mini_page(old_ptr)
-  └── acquire_exclusive_dealloc_handle(old_ptr)
-      └── CAS(Ready → BeginTombstone)  ← WINS (thread A was first)
-      └── returns TombstoneHandle
+  +-- acquire_exclusive_dealloc_handle(old_ptr)
+      +-- CAS(Ready -> BeginTombstone)  <- WINS (thread A was first)
+      +-- returns TombstoneHandle
 
 Thread B (evictor):
   acquire_exclusive_dealloc_handle(old_ptr)
-  └── CAS(Ready → BeginTombstone)  ← FAILS (state is already 3)
-  └── returns Err(WouldBlock)
+  +-- CAS(Ready -> BeginTombstone)  <- FAILS (state is already 3)
+  +-- returns Err(WouldBlock)
 ```
 
 Thread A wins. It now holds a `TombstoneHandle`, which gives exclusive deallocation rights. Thread A can safely:
 1. Allocate a bigger block from the circular buffer.
 2. Copy all records from old block to new block. (The old block's data is still intact; `BeginTombstone` prevents deallocation but does not zero the bytes.)
 3. Update the page table pointer from old to new.
-4. Deallocate the old block (transitions `BeginTombstone → FreeListed`).
+4. Deallocate the old block (transitions `BeginTombstone -> FreeListed`).
 
 Thread B, the evictor, enters a retry loop. It checks the block's state. If Thread A finishes quickly and the block becomes `FreeListed`, the evictor removes it from the free list and marks it `Evicted`. If Thread A is slow, the evictor spins until the state changes. Either way, exactly one thread performs the deallocation, and the evictor ultimately marks the block `Evicted` so `head_addr` can advance.
 
@@ -815,19 +815,19 @@ Thread B, the evictor, enters a retry loop. It checks the block's state. If Thre
 The evictor claimed a block (state is `BeginTombstone`). It calls the tree's `eviction_callback()` to merge dirty records to disk. But the callback discovers that the page table entry has changed (another thread grew the mini-page). The callback returns an error.
 
 ```
-Time ──────────────────────────────────────────────────────────►
+Time --------------------------------------------------------------->
 
 Evictor:
   1. acquire_exclusive_dealloc_handle(ptr)
-     └── CAS(Ready → BeginTombstone): SUCCESS
-     └── returns TombstoneHandle { ptr }
+     +-- CAS(Ready -> BeginTombstone): SUCCESS
+     +-- returns TombstoneHandle { ptr }
 
   2. callback(handle) returns Err(handle)
-     └── The eviction callback failed. The TombstoneHandle is returned.
+     +-- The eviction callback failed. The TombstoneHandle is returned.
 
   3. drop(handle)
-     └── TombstoneHandle::Drop fires
-     └── CAS(BeginTombstone → Ready): state byte changes from 3 to 1
+     +-- TombstoneHandle::Drop fires
+     +-- CAS(BeginTombstone -> Ready): state byte changes from 3 to 1
      Block is back to Ready. It can be used normally.
 
   4. backoff.spin(), then retry from step 1
@@ -848,7 +848,7 @@ A mini-page dies when memory runs out. Eviction has three jobs: flush dirty reco
 When `alloc()` finds no space, it returns `CircularBufferError::Full`. The calling thread catches this error in its retry loop and becomes an evictor:
 
 ```rust
-// tree.rs — the retry loop
+// tree.rs - the retry loop
 Err(TreeError::CircularBufferFull) => {
     self.evict_from_circular_buffer();  // I am the evictor now
     // then retry the insert...
@@ -871,26 +871,26 @@ Before evicting a mini-page, we need to know which records require disk I/O. Eve
 
 **Clean records** (`Cache`, `Phantom`) are copies of data already on disk. They can be dropped immediately with no I/O.
 
-The merge reads the base page from disk, applies all dirty inserts and deletes, writes it back. This is where write amplification is paid: one 4KB write for all the inserts that accumulated. If the mini-page buffered 20 writes, the effective write amplification is 4096/(20×100) ≈ 2×, much better than the 40× without mini-pages.
+The merge reads the base page from disk, applies all dirty inserts and deletes, writes it back. This is where write amplification is paid: one 4KB write for all the inserts that accumulated. If the mini-page buffered 20 writes, the effective write amplification is 4096/(20x100) = 2x, much better than the 40x without mini-pages.
 
 ### The two-phase eviction protocol
 
 Eviction must not block allocations. Disk I/O takes milliseconds; holding a lock that long would serialize the entire system. The solution: a two-phase protocol with a third pointer.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  evicted  │  being evicted  │      live      │     free     │
-└──────────────────────────────────────────────────────────────┘
-↑ head      ↑ evicting         ↑ tail
++--------------------------------------------------------------+
+|  evicted  |  being evicted  |      live      |     free     |
++--------------------------------------------------------------+
+^ head      ^ evicting         ^ tail
 ```
 
 **Phase 1 (circular buffer lock held):** Bump `evicting_addr` forward by one block's size. Release the lock.
 
 **Phase 2 (no circular buffer lock):** The slow part:
-1. Acquire `TombstoneHandle` via CAS (Ready → BeginTombstone)
+1. Acquire `TombstoneHandle` via CAS (Ready -> BeginTombstone)
 2. Acquire the page table lock for this leaf
 3. Read 4KB base page from disk, apply dirty records, write 4KB back
-4. Update page table: `Mini(ptr)` → `Base(offset)`
+4. Update page table: `Mini(ptr)` -> `Base(offset)`
 5. Release page table lock
 6. Mark block as `Evicted`
 
@@ -905,16 +905,16 @@ The circular buffer evicts in FIFO order: oldest first. But FIFO is a poor polic
 The buffer is split into two zones:
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  copy-on-access zone (10%)  │  in-place update zone (90%)     │
-└────────────────────────────────────────────────────────────────┘
-↑ head                                                    tail ↑
++----------------------------------------------------------------+
+|  copy-on-access zone (10%)  |  in-place update zone (90%)      |
++----------------------------------------------------------------+
+^ head                                                     tail ^
   (old, near eviction)                              (young, safe)
 ```
 
 When any operation touches a block in the copy-on-access zone, it copies the block to the tail:
 
-1. Claim the old block (CAS: Ready → BeginTombstone)
+1. Claim the old block (CAS: Ready -> BeginTombstone)
 2. Allocate a new block at the tail
 3. Copy the records
 4. Update the page table pointer
@@ -929,47 +929,47 @@ Why not a true LRU list? Updating a doubly-linked list on every access requires 
 All six states have now appeared in context. Here is the complete diagram with annotations:
 
 ```
-                        ┌──────────────┐
-               alloc()  │   NotReady    │  Section 2: allocated, being initialized
-                        └──────┬───────┘
-                     drop guard│ CAS(0→1)     Section 2: guard publishes
-                        ┌──────▼───────┐
-                        │    Ready      │  live, usable
-                        └──────┬───────┘
-                               │
-      ┌────────────────────────┴────────────────────────┐
-      │ acquire_exclusive_dealloc_handle: CAS(1→3)      │
-      │                                                  │
-      ▼                                                  │
-┌─────────────────┐                                      │
-│ BeginTombstone  │  Section 3: exclusive dealloc claim  │
-└──────┬──────────┘                                      │
-       │                                                 │
-       ├──── drop TombstoneHandle ──→ revert to Ready ───┘
-       │     (abort path)                 (safety net)
-       │
-       ├──── try_add to free list succeeds ──→ ┌──────────────┐
-       │                                        │  FreeListed   │  Section 3
-       │                                        └──────┬───────┘
-       │                                               │
-       │                                     (evictor removes from free list)
-       │                                               │
-       └──── try_add fails (lock contention) ──→ ┌─────▼────────┐
-                                                  │  Tombstone   │  Section 3: dead, not reusable
-                                                  └──────┬───────┘
-                                                         │
-                                                  (evictor walks in order)
-                                                         │
-                                                  ┌──────▼───────┐
-                                                  │   Evicted     │  Section 4: head can advance past
-                                                  └──────────────┘
-                                                         │
-                                                         └──→ back to NotReady (reused via alloc)
+                        +--------------+
+               alloc()  |   NotReady   |  Section 2: allocated, being initialized
+                        +------+-------+
+                     drop guard| CAS(0->1)     Section 2: guard publishes
+                        +------v-------+
+                        |    Ready     |  live, usable
+                        +------+-------+
+                               |
+      +------------------------+------------------------+
+      | acquire_exclusive_dealloc_handle: CAS(1->3)     |
+      |                                                 |
+      v                                                 |
++-----------------+                                     |
+| BeginTombstone  |  Section 3: exclusive dealloc claim |
++------+----------+                                     |
+       |                                                |
+       +---- drop TombstoneHandle --> revert to Ready --+
+       |     (abort path)                 (safety net)
+       |
+       +---- try_add to free list succeeds --> +--------------+
+       |                                       |  FreeListed  |  Section 3
+       |                                       +------+-------+
+       |                                              |
+       |                                    (evictor removes from free list)
+       |                                              |
+       +---- try_add fails (lock contention) --> +----v---------+
+                                                 |  Tombstone   |  Section 3: dead, not reusable
+                                                 +------+-------+
+                                                        |
+                                                 (evictor walks in order)
+                                                        |
+                                                 +------v-------+
+                                                 |   Evicted    |  Section 4: head can advance past
+                                                 +--------------+
+                                                        |
+                                                        +--> back to NotReady (reused via alloc)
 ```
 
 Every arrow is a `compare_exchange` on an `AtomicU8`. The state byte is the single source of truth for who owns the block.
 
-The lifecycle is complete: birth (Section 2) → growth and recycling (Section 3) → death and eviction (Section 4). Now let's address the cross-cutting concern: how do multiple threads execute this lifecycle concurrently without corrupting the tree?
+The lifecycle is complete: birth (Section 2) -> growth and recycling (Section 3) -> death and eviction (Section 4). Now let's address the cross-cutting concern: how do multiple threads execute this lifecycle concurrently without corrupting the tree?
 
 ---
 
@@ -1031,7 +1031,7 @@ Rust's standard `RwLock` does not support upgrading a read lock to a write lock.
 The encoding uses a single `AtomicU32`:
 - `0` = unlocked
 - Bit 0 = writer waiting (used for fairness)
-- Even values ≥ 2 = reader count (each reader adds 2)
+- Even values >= 2 = reader count (each reader adds 2)
 - `u32::MAX` = write-locked
 
 ```rust
@@ -1181,7 +1181,7 @@ Shuttle controls scheduling at synchronization points. But some code paths spin 
 BF-Tree inserts explicit yields at these locations:
 
 ```rust
-// tree.rs — after a version mismatch retry
+// tree.rs - after a version mismatch retry
 Err(TreeError::NeedRestart) => {
     #[cfg(all(feature = "shuttle", test))]
     shuttle::thread::yield_now();  // let the writer finish
