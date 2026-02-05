@@ -51,38 +51,26 @@ const canonicalURL = new URL(Astro.url.pathname, site.baseURL)
     <style>
       /* Typograms dark mode support */
       @media (prefers-color-scheme: dark) {
-        .prose svg line,
-        .prose svg path,
-        .prose svg polyline {
+        .prose svg [stroke="black"] {
           stroke: #e5e7eb !important;
         }
-        .prose svg polygon {
-          stroke: #e5e7eb !important;
+        .prose svg [fill="black"] {
           fill: #e5e7eb !important;
         }
-        .prose svg circle {
-          stroke: #e5e7eb !important;
-        }
-        .prose svg circle[fill="white"] {
+        .prose svg [fill="white"] {
           fill: #111827 !important;
         }
         .prose svg text:not(.reserved) {
           fill: #e5e7eb !important;
         }
       }
-      .dark .prose svg line,
-      .dark .prose svg path,
-      .dark .prose svg polyline {
+      .dark .prose svg [stroke="black"] {
         stroke: #e5e7eb !important;
       }
-      .dark .prose svg polygon {
-        stroke: #e5e7eb !important;
+      .dark .prose svg [fill="black"] {
         fill: #e5e7eb !important;
       }
-      .dark .prose svg circle {
-        stroke: #e5e7eb !important;
-      }
-      .dark .prose svg circle[fill="white"] {
+      .dark .prose svg [fill="white"] {
         fill: #111827 !important;
       }
       .dark .prose svg text:not(.reserved) {
