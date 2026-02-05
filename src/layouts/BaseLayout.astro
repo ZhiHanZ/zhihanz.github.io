@@ -51,32 +51,42 @@ const canonicalURL = new URL(Astro.url.pathname, site.baseURL)
     <style>
       /* Typograms dark mode support */
       @media (prefers-color-scheme: dark) {
-        svg.typogram path,
-        svg.typogram line,
-        svg.typogram polyline,
-        svg.typogram polygon {
+        .prose svg line,
+        .prose svg path,
+        .prose svg polyline {
           stroke: #e5e7eb !important;
         }
-        svg.typogram text {
+        .prose svg polygon {
+          stroke: #e5e7eb !important;
           fill: #e5e7eb !important;
         }
-        svg.typogram rect:not([fill="none"]) {
-          fill: transparent !important;
+        .prose svg circle {
           stroke: #e5e7eb !important;
         }
+        .prose svg circle[fill="white"] {
+          fill: #111827 !important;
+        }
+        .prose svg text:not(.reserved) {
+          fill: #e5e7eb !important;
+        }
       }
-      .dark svg.typogram path,
-      .dark svg.typogram line,
-      .dark svg.typogram polyline,
-      .dark svg.typogram polygon {
+      .dark .prose svg line,
+      .dark .prose svg path,
+      .dark .prose svg polyline {
         stroke: #e5e7eb !important;
       }
-      .dark svg.typogram text {
+      .dark .prose svg polygon {
+        stroke: #e5e7eb !important;
         fill: #e5e7eb !important;
       }
-      .dark svg.typogram rect:not([fill="none"]) {
-        fill: transparent !important;
+      .dark .prose svg circle {
         stroke: #e5e7eb !important;
+      }
+      .dark .prose svg circle[fill="white"] {
+        fill: #111827 !important;
+      }
+      .dark .prose svg text:not(.reserved) {
+        fill: #e5e7eb !important;
       }
     </style>
   </head>
