@@ -47,24 +47,10 @@ const canonicalURL = new URL(Astro.url.pathname, site.baseURL)
     <link href="https://fonts.googleapis.com/css2?family=Recursive:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="alternate" type="application/rss+xml" title={site.title} href="/rss.xml" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="color-scheme" content="light only" />
     <script src="https://google.github.io/typograms/typograms.js"></script>
-    <style>
-      /* Typograms dark mode - light background card */
-      @media (prefers-color-scheme: dark) {
-        .prose svg.diagram {
-          background: #f8fafc;
-          padding: 1rem;
-          border-radius: 0.5rem;
-        }
-      }
-      .dark .prose svg.diagram {
-        background: #f8fafc;
-        padding: 1rem;
-        border-radius: 0.5rem;
-      }
-    </style>
   </head>
-  <body class="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200">
+  <body class="min-h-screen flex flex-col bg-white text-gray-900">
     <Header />
     <main class="flex-1 py-8">
       <slot />
