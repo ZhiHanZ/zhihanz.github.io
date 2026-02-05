@@ -49,40 +49,18 @@ const canonicalURL = new URL(Astro.url.pathname, site.baseURL)
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script src="https://google.github.io/typograms/typograms.js"></script>
     <style>
-      /* Typograms dark mode support - override injected stylesheet */
+      /* Typograms dark mode - light background card */
       @media (prefers-color-scheme: dark) {
-        .prose svg.diagram line,
-        .prose svg.diagram path,
-        .prose svg.diagram polyline,
-        .prose svg.diagram circle {
-          stroke: #e5e7eb !important;
-        }
-        .prose svg.diagram polygon {
-          stroke: #e5e7eb !important;
-          fill: #e5e7eb !important;
-        }
-        .prose svg.diagram text {
-          fill: #e5e7eb !important;
-        }
-        .prose svg.diagram circle[fill="white"] {
-          fill: #111827 !important;
+        .prose svg.diagram {
+          background: #f8fafc;
+          padding: 1rem;
+          border-radius: 0.5rem;
         }
       }
-      .dark .prose svg.diagram line,
-      .dark .prose svg.diagram path,
-      .dark .prose svg.diagram polyline,
-      .dark .prose svg.diagram circle {
-        stroke: #e5e7eb !important;
-      }
-      .dark .prose svg.diagram polygon {
-        stroke: #e5e7eb !important;
-        fill: #e5e7eb !important;
-      }
-      .dark .prose svg.diagram text {
-        fill: #e5e7eb !important;
-      }
-      .dark .prose svg.diagram circle[fill="white"] {
-        fill: #111827 !important;
+      .dark .prose svg.diagram {
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 0.5rem;
       }
     </style>
   </head>
