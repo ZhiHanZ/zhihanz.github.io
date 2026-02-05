@@ -30,7 +30,7 @@
   h3 { @apply text-xl md:text-2xl mt-8 mb-2; }
 
   code {
-    @apply bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm;
+    @apply bg-gray-100 px-1.5 py-0.5 rounded text-sm;
   }
 
   pre {
@@ -42,7 +42,7 @@
   }
 
   blockquote {
-    @apply border-l-4 border-[--color-accent] pl-4 italic my-4 text-gray-600 dark:text-gray-400;
+    @apply border-l-4 border-[--color-accent] pl-4 italic my-4 text-gray-600;
   }
 }
 
@@ -76,15 +76,15 @@
   }
 
   .prose th {
-    @apply bg-gray-100 dark:bg-gray-800 px-4 py-2 text-left font-semibold border border-gray-300 dark:border-gray-700;
+    @apply bg-gray-100 px-4 py-2 text-left font-semibold border border-gray-300;
   }
 
   .prose td {
-    @apply px-4 py-2 border border-gray-300 dark:border-gray-700;
+    @apply px-4 py-2 border border-gray-300;
   }
 
   .prose tr:nth-child(even) {
-    @apply bg-gray-50 dark:bg-gray-800/50;
+    @apply bg-gray-50;
   }
 
   .read-more {
@@ -93,16 +93,5 @@
 
   .tag {
     @apply inline-block border border-[--color-accent] text-[--color-accent] px-2 py-0.5 rounded text-sm hover:bg-[--color-accent] hover:text-white transition-colors;
-  }
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-link: hsl(0, 0%, 85%);
-  }
-
-  body {
-    @apply bg-gray-900 text-gray-200;
   }
 }

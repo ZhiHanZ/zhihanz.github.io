@@ -28,7 +28,7 @@ const seriesParts = allSeries
 
 <BaseLayout title={post.data.title} description={post.data.description}>
   <article class="container">
-    <header class="pb-4 mb-8 border-b border-gray-200 dark:border-gray-700">
+    <header class="pb-4 mb-8 border-b border-gray-200">
       <div class="flex justify-between items-start">
         <div>
           <div class="text-sm text-[--color-accent] mb-1">
@@ -48,7 +48,7 @@ const seriesParts = allSeries
           </svg>
         </a>
       </div>
-      <div class="text-sm text-gray-600 dark:text-gray-400">
+      <div class="text-sm text-gray-600">
         <time datetime={post.data.date.toISOString()}>{publishedAt}</time>
       </div>
       {post.data.tags.length > 0 && (
@@ -66,7 +66,7 @@ const seriesParts = allSeries
 
     <!-- Series Navigation -->
     {seriesParts.length > 1 && (
-      <nav class="mt-10 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+      <nav class="mt-10 p-4 bg-gray-100 rounded-lg">
         <h3 class="font-semibold mb-3">Series: {post.data.series}</h3>
         <ol class="space-y-2 text-sm">
           {seriesParts.map((part) => (
@@ -85,7 +85,7 @@ const seriesParts = allSeries
       </nav>
     )}
 
-    <hr class="border-gray-200 dark:border-gray-700 mt-10 mb-4" />
+    <hr class="border-gray-200 mt-10 mb-4" />
     <Giscus />
   </article>
 </BaseLayout>

@@ -22,7 +22,7 @@ const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(pos
 
 <BaseLayout title={post.data.title} description={post.data.description} image={post.data.image}>
   <article class="container">
-    <header class="pb-4 mb-8 border-b border-gray-200 dark:border-gray-700">
+    <header class="pb-4 mb-8 border-b border-gray-200">
       <div class="flex justify-between items-start">
         <h1 class="text-3xl font-bold mb-2">{post.data.title}</h1>
         <a
@@ -37,7 +37,7 @@ const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(pos
           </svg>
         </a>
       </div>
-      <div class="text-sm text-gray-600 dark:text-gray-400">
+      <div class="text-sm text-gray-600">
         <time datetime={post.data.date.toISOString()}>{publishedAt}</time>
       </div>
       {post.data.tags.length > 0 && (
@@ -53,7 +53,7 @@ const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(pos
       <Content />
     </div>
 
-    <hr class="border-gray-200 dark:border-gray-700 mt-10 mb-4" />
+    <hr class="border-gray-200 mt-10 mb-4" />
     <Giscus />
   </article>
 </BaseLayout>

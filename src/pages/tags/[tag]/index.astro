@@ -41,7 +41,7 @@ const allPosts = [...posts, ...series]
 <BaseLayout title={`Tag: ${tag}`} description={`Posts tagged with ${tag}`}>
   <div class="container">
     <h1 class="text-3xl font-bold mb-2">Tag: {tag}</h1>
-    <p class="text-gray-600 dark:text-gray-400 mb-8">
+    <p class="text-gray-600 mb-8">
       {allPosts.length} post{allPosts.length !== 1 ? 's' : ''} tagged with "{tag}"
     </p>
     <PostList posts={allPosts} />

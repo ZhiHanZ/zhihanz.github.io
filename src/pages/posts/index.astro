@@ -26,7 +26,7 @@ const { items: paginatedPosts, totalPages } = paginate(allPosts, site.pagination
 <BaseLayout title="Posts" description="Technical articles on GenAI, data infrastructure, and systems programming">
   <div class="container">
     <h1 class="text-3xl font-bold mb-6">Posts</h1>
-    <p class="text-gray-600 dark:text-gray-400 mb-8">
+    <p class="text-gray-600 mb-8">
       Deep dives into GenAI, agentic workflows, data infrastructure, and systems programming.
     </p>
     {allPosts.length > 0 ? (
