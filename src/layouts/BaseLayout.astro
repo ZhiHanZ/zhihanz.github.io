@@ -51,12 +51,32 @@ const canonicalURL = new URL(Astro.url.pathname, site.baseURL)
     <style>
       /* Typograms dark mode support */
       @media (prefers-color-scheme: dark) {
-        svg.typogram {
-          filter: invert(1);
+        svg.typogram path,
+        svg.typogram line,
+        svg.typogram polyline,
+        svg.typogram polygon {
+          stroke: #e5e7eb !important;
+        }
+        svg.typogram text {
+          fill: #e5e7eb !important;
+        }
+        svg.typogram rect:not([fill="none"]) {
+          fill: transparent !important;
+          stroke: #e5e7eb !important;
         }
       }
-      .dark svg.typogram {
-        filter: invert(1);
+      .dark svg.typogram path,
+      .dark svg.typogram line,
+      .dark svg.typogram polyline,
+      .dark svg.typogram polygon {
+        stroke: #e5e7eb !important;
+      }
+      .dark svg.typogram text {
+        fill: #e5e7eb !important;
+      }
+      .dark svg.typogram rect:not([fill="none"]) {
+        fill: transparent !important;
+        stroke: #e5e7eb !important;
       }
     </style>
   </head>
