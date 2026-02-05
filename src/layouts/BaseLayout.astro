@@ -48,6 +48,17 @@ const canonicalURL = new URL(Astro.url.pathname, site.baseURL)
     <link rel="alternate" type="application/rss+xml" title={site.title} href="/rss.xml" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script src="https://google.github.io/typograms/typograms.js"></script>
+    <style>
+      /* Typograms dark mode support */
+      @media (prefers-color-scheme: dark) {
+        svg.typogram {
+          filter: invert(1);
+        }
+      }
+      .dark svg.typogram {
+        filter: invert(1);
+      }
+    </style>
   </head>
   <body class="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200">
     <Header />
